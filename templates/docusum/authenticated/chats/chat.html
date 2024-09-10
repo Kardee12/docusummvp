@@ -1,0 +1,609 @@
+{% extends 'docusum/authenticated/authenticated_base.html' %}
+{% load static %}
+{% load socialaccount %}
+
+{% block content %}
+    <style>
+        .container {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        .chat-card {
+            background-color: #fff;
+            box-shadow: 0 8px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 1rem;
+            border-radius: 20px;
+            border: none;
+        }
+
+        .chat-messages {
+            height: 60vh;
+            overflow-y: auto;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            background-color: #fff; /* Background color for the message */
+            border-bottom: 1px solid #fff;
+        }
+
+        .input-bar-container {
+            display: flex;
+            align-items: center;
+            background-color: #fff; /* White background to match the chat-card */
+            border-bottom-left-radius: 20px;
+            border-bottom-right-radius: 20px;
+            padding: 5px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Shadow to match chat-card */
+            margin-bottom: 1rem;
+        }
+
+        .input-bar-container label,
+        .input-bar-container button {
+            background-color: #fff; /* White background */
+            border: none;
+            margin: 0 5px; /* Slight space between elements */
+            padding: 8px;
+            border-radius: 50%; /* Circular for the icons */
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        /* Adjust padding and borders to ensure the elements appear connected */
+        .input-bar-container input[type="text"] {
+            flex-grow: 1;
+            border: none;
+            padding: 8px 15px;
+            margin: 0;
+            border-radius: 20px; /* Rounded borders for the text input */
+            box-shadow: none; /* No shadow to make it blend with the container */
+        }
+
+        /* Hover styles for the icons */
+        .input-bar-container label:hover,
+        .input-bar-container button:hover {
+            background-color: #f8f8f8; /* Light grey for hover effect */
+        }
+
+        .input-bar-container input[type="file"] {
+            display: none; /* Keep the file input hidden */
+        }
+
+        .reset-label {
+            /* Inherit styles from the file upload label for consistency */
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #fff; /* White background */
+            border-radius: 50%;
+            padding: 8px;
+            margin-right: 0.5rem; /* Space between the reset and text input */
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .reset-label:hover {
+            background-color: #f8f8f8; /* Light grey for hover effect */
+        }
+
+        .message-bubble {
+            display: flex;
+            align-items: center;
+            width: 100%; /* Full width */
+            margin-bottom: 5px;
+        }
+
+        .message-avatar {
+            width: 40px; /* Adjust this value to change the avatar size */
+            height: 40px; /* Adjust this value to change the avatar size */
+            border-radius: 50%;
+            background-color: #ccc; /* Placeholder for avatar color */
+            background-size: cover; /* Ensure the image covers the div without distortion */
+            background-position: center; /* Center the background image */
+        }
+
+
+        /* Style for the message content */
+        .message-content {
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1; /* Allow the content to fill the available space */
+            padding: 8px;
+            border-radius: 18px;
+            background-color: #fff; /* Background color for the message */
+            margin-left: 10px; /* Space between avatar and message */
+        }
+
+        .message-text {
+            flex-grow: 1; /* Allows text to fill the bubble */
+            padding: 10px 14px; /* Padding inside the text area */
+            border-radius: 18px; /* Rounded corners for the text area */
+            background-color: #fff; /* White background for the text area */
+            color: #000; /* Text color for readability */
+            margin: 0; /* Remove any margin if present */
+        }
+
+
+        .user-message .message-content {
+            align-self: flex-end;
+
+        }
+
+        .ai-response .message-content {
+            align-self: flex-start;
+        }
+
+        .selected-files {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 1rem;
+            padding: 10px;
+        }
+
+        .file-preview {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            background-color: #f1f3f4; /* Light grey background for each file */
+            border-radius: 16px;
+        }
+
+        .file-thumbnail {
+            width: 40px;
+            height: 40px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-right: 10px;
+        }
+
+        .file-icon {
+            font-size: 24px; /* Larger icon size */
+            color: #5f6368; /* Icon color */
+            margin-right: 10px;
+        }
+
+        .file-name {
+            font-size: 14px;
+            color: #202124; /* Text color */
+        }
+
+        .remove-file-button {
+            margin-left: auto; /* Push the button to the right */
+            color: #5f6368; /* Button color */
+            cursor: pointer;
+        }
+
+        .remove-file-button:hover {
+            color: #202124; /* Darker color on hover */
+        }
+
+        /* Settings button */
+        .settings-btn {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            background-color: transparent;
+            border: none;
+            cursor: pointer;
+        }
+
+        .settings-btn svg {
+            stroke: #333;
+            transition: stroke 0.3s ease;
+        }
+
+        .settings-btn:hover svg {
+            stroke: #000;
+        }
+
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-content {
+            background-color: #fff;
+            margin: 15% auto;
+            padding: 20px;
+            border-radius: 20px;
+            width: 80%;
+            max-width: 500px;
+        }
+
+        .close-btn {
+            float: right;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        .close-btn:hover {
+            color: #000;
+        }
+
+        #sound-wave-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: 60px;
+            background-color: #fff;
+            border-radius: 30px;
+            overflow: hidden;
+        }
+
+        #sound-wave {
+            width: 100%;
+            height: 100%;
+        }
+
+        .mic-icon {
+            position: absolute;
+            right: 20px;
+            color: #fff;
+        }
+    </style>
+
+    <div class="container py-4">
+        <!-- Settings Button -->
+        <input type="hidden" id="csrf_token" value="{{ csrf_token }}">
+        <button class="settings-btn" id="settings-btn">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#333">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.78 1.78 0 0 1 0 2.1l-1.2 2.1a1.78 1.78 0 0 1-1.5.9 1.77 1.77 0 0 1-1.5-.9l-1.2-2.1a1.78 1.78 0 0 1 0-2.1l1.2-2.1a1.78 1.78 0 0 1 1.5-.9 1.78 1.78 0 0 1 1.5.9z"></path>
+                <path d="M6.4 9a1.78 1.78 0 0 1 0-2.1l1.2-2.1A1.78 1.78 0 0 1 9.1 4a1.77 1.77 0 0 1 1.5.9l1.2 2.1a1.78 1.78 0 0 1 0 2.1l-1.2 2.1a1.78 1.78 0 0 1-1.5.9 1.77 1.77 0 0 1-1.5-.9z"></path>
+            </svg>
+        </button>
+
+        <div class="chat-card">
+            <div class="chat-messages d-flex flex-column align-items-end" id="chat-messages">
+
+            </div>
+            <div class="selected-files" id="selected-files"></div>
+            <div class="input-bar-container">
+                <label for="file-upload" class="file-upload-label">
+                    <svg class="upload-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#333">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                    </svg>
+                </label>
+                <button id="record-btn" class="record-btn" onclick="startRecording()">
+                    <svg class="record-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#333">
+                        <path d="M12 1a4 4 0 0 1 4 4v6a4 4 0 1 1-8 0V5a4 4 0 0 1 4-4z"></path>
+                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                        <line x1="12" y1="19" x2="12" y2="23"></line>
+                        <line x1="8" y1="23" x2="16" y2="23"></line>
+                    </svg>
+                </button>
+
+                <!-- Sound wave visualizer that appears when recording -->
+                <div id="sound-wave-container" style="display:none;">
+                    <canvas id="sound-wave"></canvas>
+                    <svg class="mic-icon" width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="#333">
+                        <path d="M12 1a4 4 0 0 1 4 4v6a4 4 0 1 1-8 0V5a4 4 0 0 1 4-4z"></path>
+                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                        <line x1="12" y1="19" x2="12" y2="23"></line>
+                        <line x1="8" y1="23" x2="16" y2="23"></line>
+                    </svg>
+                </div>
+                <input id="file-upload" type="file" multiple hidden>
+                <input type="text" placeholder="Message DocuSum..." id="chat-input" class="form-control"/>
+                <button onclick="sendMessage()">
+                    <svg class="send-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#333">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_scripts %}
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const input = document.getElementById("chat-input");
+            const csrfToken = document.getElementById("csrf_token").value; // Get the CSRF token
+            const fileInput = document.getElementById('file-upload');
+            const selectedFilesContainer = document.getElementById('selected-files');
+            let selectedFiles = [];
+
+            input.addEventListener('keypress', function (e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+
+            function updateFilePreviews() {
+                selectedFilesContainer.innerHTML = '';
+                selectedFiles.forEach((file, index) => {
+                    const filePreview = document.createElement('div');
+                    filePreview.classList.add('file-preview');
+
+                    if (file.type.startsWith('image/')) {
+                        const img = document.createElement('img');
+                        img.src = URL.createObjectURL(file);
+                        img.classList.add('file-thumbnail');
+                        filePreview.appendChild(img);
+                    } else {
+                        const fileIcon = document.createElement('span');
+                        fileIcon.classList.add('material-icons', 'file-icon');
+                        fileIcon.textContent = 'insert_drive_file';
+                        filePreview.appendChild(fileIcon);
+
+                        const fileName = document.createElement('span');
+                        fileName.textContent = file.name;
+                        fileName.classList.add('file-name');
+                        filePreview.appendChild(fileName);
+                    }
+
+                    const removeButton = document.createElement('span');
+                    removeButton.classList.add('material-icons', 'remove-file-button');
+                    removeButton.textContent = 'close';
+                    removeButton.addEventListener('click', function () {
+                        selectedFiles.splice(index, 1);
+                        updateFilePreviews();
+                    });
+                    filePreview.appendChild(removeButton);
+
+                    selectedFilesContainer.appendChild(filePreview);
+                });
+            }
+
+            fileInput.addEventListener('change', function () {
+                selectedFiles.push(...this.files);
+                updateFilePreviews();
+            });
+
+            window.sendMessage = function () {
+                const message = input.value.trim();
+                if (!message && selectedFiles.length === 0) {
+                    console.log("No message or files to send.");
+                    return;
+                }
+
+                if (message) {
+                    appendMessage("You", message, "user-message");
+                    input.value = "";
+                }
+
+                input.disabled = true;
+                document.querySelector('button[onclick="sendMessage()"]').disabled = true;
+
+                let formData = new FormData();
+                formData.append('message', message);
+                selectedFiles.forEach((file, index) => {
+                    formData.append('file' + index, file);
+                });
+
+                // Add CSRF token to the request
+                $.ajax({
+                    url: "/your_endpoint",  // Replace with your actual endpoint
+                    type: "POST",
+                    data: formData,
+                    headers: {
+                        "X-CSRFToken": csrfToken  // Add the CSRF token to the request headers
+                    },
+                    processData: false,
+                    contentType: false,
+                    success: function (response) {
+                        if (response.api_response) {
+                            appendMessage("AI", response.api_response, "ai-response");
+                        }
+                        selectedFiles = [];
+                        updateFilePreviews();
+                    },
+                    error: function (error) {
+                        console.error("Error:", error);
+                    },
+                    complete: function () {
+                        input.disabled = false;
+                        document.querySelector('button[onclick="sendMessage()"]').disabled = false;
+                    }
+                });
+            };
+
+            window.appendMessage = function (sender, text, className) {
+                const messagesContainer = document.getElementById("chat-messages");
+                const messageBubble = document.createElement("div");
+                messageBubble.classList.add("message-bubble", className);
+
+                const messageContent = document.createElement("div");
+                messageContent.classList.add("message-content");
+
+                // Add sender label and make it bold
+                const senderLabel = document.createElement("div");
+                senderLabel.classList.add("message-sender");
+                senderLabel.innerHTML = `<strong>${sender}</strong>`; // Bold sender label
+
+                const messageText = document.createElement("div");
+                messageText.classList.add("message-text");
+                messageText.textContent = text;
+
+                // Append sender and message text
+                messageContent.appendChild(senderLabel);
+                messageContent.appendChild(messageText);
+
+                messageBubble.appendChild(messageContent);
+                messagesContainer.appendChild(messageBubble);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            };
+
+        });
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const chatInput = document.getElementById("chat-input");
+            const soundWaveContainer = document.getElementById("sound-wave-container");
+            const soundWaveCanvas = document.getElementById("sound-wave");
+            const recordButton = document.getElementById("record-btn");
+
+            let isRecording = false;
+            let recognition;
+            let audioContext;
+            let analyser;
+            let microphone;
+
+            // Check if the Web Speech API is supported
+            if ('webkitSpeechRecognition' in window) {
+                recognition = new webkitSpeechRecognition();
+                recognition.continuous = true;
+                recognition.interimResults = true;
+                recognition.lang = 'en-US';
+
+                recognition.onstart = function () {
+                    isRecording = true;
+                    showSoundWave();
+                    startAudioAnalysis();
+                };
+
+                recognition.onresult = function (event) {
+                    let transcript = '';
+                    for (let i = event.resultIndex; i < event.results.length; ++i) {
+                        transcript += event.results[i][0].transcript;
+                    }
+                    chatInput.value = transcript;
+                };
+
+                recognition.onerror = function (event) {
+                    console.error("Speech recognition error", event);
+                };
+
+                recognition.onend = function () {
+                    isRecording = false;
+                    hideSoundWave();
+                    stopAudioAnalysis();
+                };
+            } else {
+                console.error('Speech recognition not supported');
+            }
+
+            function showSoundWave() {
+                chatInput.style.display = "none";
+                soundWaveContainer.style.display = "flex";
+                startSoundWaveAnimation();
+            }
+
+            function hideSoundWave() {
+                soundWaveContainer.style.display = "none";
+                chatInput.style.display = "block";
+                stopSoundWaveAnimation();
+            }
+
+            window.startRecording = function () {
+                if (isRecording) {
+                    recognition.stop();
+                } else {
+                    recognition.start();
+                }
+            };
+
+            // Audio analysis setup
+            async function startAudioAnalysis() {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({audio: true, video: false});
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    analyser = audioContext.createAnalyser();
+                    microphone = audioContext.createMediaStreamSource(stream);
+                    microphone.connect(analyser);
+                    analyser.fftSize = 256;
+                } catch (err) {
+                    console.error('Error accessing the microphone', err);
+                }
+            }
+
+            function stopAudioAnalysis() {
+                if (microphone) {
+                    microphone.disconnect();
+                }
+                if (audioContext) {
+                    audioContext.close();
+                }
+            }
+
+            // Enhanced audio-reactive wave animation
+            let animationFrameId;
+            const waveCount = 3;
+            const wavePoints = 100;
+            const waves = [];
+
+            for (let i = 0; i < waveCount; i++) {
+                waves.push({
+                    points: new Array(wavePoints).fill(0),
+                    speed: Math.random() * 0.1 + 0.05,
+                    color: `hsl(${Math.random() * 360}, 70%, 60%)`,
+                });
+            }
+
+            function startSoundWaveAnimation() {
+                const ctx = soundWaveCanvas.getContext("2d");
+                const WIDTH = soundWaveCanvas.width;
+                const HEIGHT = soundWaveCanvas.height;
+
+                function drawWaves() {
+                    ctx.clearRect(0, 0, WIDTH, HEIGHT);
+
+                    if (analyser) {
+                        const dataArray = new Uint8Array(analyser.frequencyBinCount);
+                        analyser.getByteFrequencyData(dataArray);
+
+                        const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+                        const amplitude = average / 256; // Normalize to 0-1 range
+
+                        waves.forEach((wave, waveIndex) => {
+                            ctx.beginPath();
+
+                            // Update wave data based on audio input
+                            for (let i = 0; i < wavePoints; i++) {
+                                const freq = dataArray[Math.floor(i / wavePoints * dataArray.length)];
+                                wave.points[i] = (freq / 256) * amplitude * HEIGHT / 2;
+                            }
+
+                            // Draw wave
+                            const step = WIDTH / wavePoints;
+                            for (let i = 0; i < wavePoints; i++) {
+                                const x = i * step;
+                                const y = HEIGHT / 2 + wave.points[i] * Math.sin(i * wave.speed + Date.now() * 0.01);
+                                if (i === 0) {
+                                    ctx.moveTo(x, y);
+                                } else {
+                                    ctx.quadraticCurveTo(x - step / 2, y, x, y);
+                                }
+                            }
+
+                            // Style and stroke the path
+                            ctx.strokeStyle = wave.color;
+                            ctx.lineWidth = 2;
+                            ctx.lineCap = 'round';
+                            ctx.lineJoin = 'round';
+                            ctx.stroke();
+
+                            // Add glow effect
+                            ctx.shadowBlur = 10;
+                            ctx.shadowColor = wave.color;
+                        });
+                    }
+
+                    animationFrameId = requestAnimationFrame(drawWaves);
+                }
+
+                drawWaves();
+            }
+
+            function stopSoundWaveAnimation() {
+                cancelAnimationFrame(animationFrameId);
+                const ctx = soundWaveCanvas.getContext("2d");
+                ctx.clearRect(0, 0, soundWaveCanvas.width, soundWaveCanvas.height);
+            }
+        });
+    </script>
+{% endblock %}

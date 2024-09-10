@@ -1,0 +1,68 @@
+{% extends "docusum/noauth/base.html" %}
+{% load static %}
+
+{% block title %}Home - DocuSum{% endblock %}
+{% block content %}
+    <!-- Header Section -->
+    <header class="position-relative" style="background: #ffffff; overflow: hidden;">
+        <div class="container pt-4 pt-xl-5">
+            <div class="col-md-8 col-xl-6 text-center mx-auto">
+                <div class="text-center">
+                    <h1 class="fw-bold display-4">Your Shortcut to Document Insights</h1>
+                </div>
+            </div>
+            <div class="col-12 col-lg-10 col-xl-7 mx-auto">
+                <div class="d-flex justify-content-center flex-wrap">
+                    <div class="position-relative" style="flex: 0 0 45%; transform: translate3d(-15%, 35%, 0);">
+                        <img class="img-fluid rounded shadow"
+                             src="{% static 'assets/img/designs/Firefly Minimalist 3d rendering of a folder standing up with a tan background facing the left 272.jpg' %}"
+                             alt="3D rendering of a folder">
+                    </div>
+                    <div class="position-relative" style="flex: 0 0 45%; transform: translate3d(-5%, 20%, 0);">
+                        <img class="img-fluid rounded shadow"
+                             src="{% static 'assets/img/designs/Firefly Minimalist 3d rendering of a newspaper standing up with a light green background 45575.jpg' %}"
+                             alt="3D rendering of a newspaper">
+                    </div>
+                    <div class="position-relative" style="flex: 0 0 60%; transform: translate3d(0, 0%, 0);">
+                        <img class="img-fluid rounded shadow"
+                             src="{% static 'assets/img/designs/Firefly Minimalist 3d rendering of a briefcase standing up with a light blue background 22601.jpg' %}"
+                             alt="3D rendering of a briefcase">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gray Moving Shapes in the Background -->
+        <div class="floating-shapes">
+            <div class="shape-1"></div>
+            <div class="shape-2"></div>
+            <div class="shape-3"></div>
+        </div>
+    </header>
+
+    <!-- Features Section -->
+    <section class="py-5 position-relative" style="background: #ffffff; overflow: hidden;">
+        <div class="container py-5">
+            <div class="row align-items-center">
+                <div class="col-md-6 text-center text-md-start mb-4">
+                    <div style="max-width: 450px;">
+                        <h2 class="fw-bold">Unveiling the Power of Instant Insights</h2>
+                        <p class="my-3">
+                            <span>DocuSum is an innovative web service designed to simplify the way you interact with text documents. Our mission is to empower users with the ability to quickly access essential information within lengthy documents using cutting-edge natural language processing and machine learning algorithms.</span>
+                        </p>
+                        <p class="my-3">
+                            <span>Our platform supports a wide range of document formats, including PDFs, Word documents (.docx), and text documents from Google Drive. Users can specify the desired summary length, and the system intelligently extracts key sentences and presents them in a readable format.</span>
+                        </p>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-4">
+                    <img class="rounded img-fluid shadow w-100 fit-cover" style="min-height: 300px;"
+                         src="{% static 'assets/img/docsum.jpg' %}" alt="DocuSum platform illustration">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Spacer Section -->
+    <div class="container py-5"></div>
+{% endblock %}

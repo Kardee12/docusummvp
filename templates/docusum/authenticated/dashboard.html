@@ -1,0 +1,532 @@
+{% extends 'docusum/authenticated/authenticated_base.html' %}
+{% load static %}
+{% load socialaccount %}
+{% block styles %}
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+
+{% endblock %}
+
+{% block content %}
+    <style>
+        body {
+            background-color: #f5f7fa;
+        }
+
+        /* New Workspace and Chat Cards */
+        .new-workspace-card, .new-chat-card {
+            background-color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 25px;
+            text-align: center;
+            transition: box-shadow 0.3s ease;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .new-workspace-card:hover, .new-chat-card:hover {
+            box-shadow: 0 8px 18px rgba(0, 0, 0, 0.15);
+        }
+
+        .new-workspace-card-icon, .new-chat-card-icon {
+            font-size: 48px;
+            color: #007bff;
+        }
+
+        .new-workspace-card-title, .new-chat-card-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-top: 15px;
+            color: #333;
+        }
+
+        /* Floating Plus Button */
+        .square-plus {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: #007bff;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            border-radius: 50%;
+            font-size: 36px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .square-plus:hover {
+            background-color: #0056b3;
+        }
+
+        /* Small Bubbles for Workspace and Chat */
+        .bubble {
+            position: fixed;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: #007bff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .bubble.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Bubble positioning */
+        .bubble.workspace-bubble {
+            bottom: 90px;
+            right: 20px;
+        }
+
+        .bubble.chat-bubble {
+            bottom: 20px;
+            right: 90px;
+        }
+
+        /* Modal Styling */
+        .modal-dialog {
+            max-width: 700px;
+            border-radius: 8px;
+        }
+
+        .modal-content {
+            border-radius: 8px;
+            border: none;
+            box-shadow: 0 4px 25px rgba(0, 0, 0, 0.1);
+            padding: 20px 30px;
+        }
+
+        .modal-header h5 {
+            font-weight: 600;
+            font-size: 22px;
+            color: #333;
+        }
+
+        .modal-footer {
+            background-color: transparent;
+            border-top: none;
+            padding: 15px 0;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-control {
+            border-radius: 8px;
+            padding: 12px;
+            border: 1px solid #ced4da;
+        }
+
+        /* Custom File Input Styling */
+        .custom-file-input {
+            display: none;
+        }
+
+        .custom-file-input + label {
+            display: inline-block;
+            background-color: #f5f7fa;
+            border: 1px solid #ced4da;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+
+        .custom-file-input:focus + label {
+            border-color: #007bff;
+            background-color: #e9f5ff;
+        }
+
+        .btn-primary, .btn-secondary {
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: background-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .btn-primary {
+            background-color: #007bff;
+            border: none;
+            box-shadow: 0 4px 12px rgba(0, 123, 255, 0.25);
+        }
+
+        .btn-primary:hover {
+            background-color: #0056b3;
+            box-shadow: 0 6px 15px rgba(0, 123, 255, 0.35);
+        }
+
+        .btn-secondary {
+            background-color: transparent;
+            color: #007bff;
+            border: 2px solid #007bff;
+        }
+
+        .btn-secondary:hover {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .modal-body {
+            padding: 20px 0;
+        }
+
+        .search-bar {
+            margin-bottom: 20px;
+        }
+
+        /* Table Styling */
+        .table {
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        .table th, .table td {
+            text-align: left;
+            padding: 10px;
+        }
+
+        .table thead {
+            background-color: #f0f0f0;
+        }
+    </style>
+
+    <div class="container mt-5">
+        <h2>Welcome Back, {{ user.first_name|default:user.first_name }}!</h2>
+
+        <!-- Grammarly-style New Workspace and Chat Cards -->
+        <div class="row mt-4">
+            <div class="col-md-3">
+                <div class="new-workspace-card" data-toggle="modal" data-target="#taskModal">
+                    <div class="new-workspace-card-icon">+</div>
+                    <div class="new-workspace-card-title">Create New Workspace</div>
+                </div>
+            </div>
+
+            <!-- Chat Card -->
+            <div class="col-md-3">
+                <div class="new-chat-card" data-toggle="modal" data-target="#chatModal">
+                    <div class="new-chat-card-icon">+</div>
+                    <div class="new-chat-card-title">Create New Chat</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search workspaces -->
+        <div class="row">
+            <div class="col">
+                <div class="card shadow rounded-12px mt-3">
+                    <div class="card-body">
+                        <input type="text" class="form-control search-bar"
+                               placeholder="Search workspaces...">
+                        <table class="table mt-3">
+                            <thead>
+                            <tr>
+                                <th scope="col">Name</th>
+                                <th scope="col">Type</th>
+                                <th scope="col">Last Modified</th>
+                                <th scope="col">Actions</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for chat in chat_sessions %}
+                                <tr>
+                                    <td>{{ chat.name }}</td>
+                                    <td>Chat</td>
+                                    <td>{{ chat.created_at }}</td>
+                                    <td>
+                                        <!-- Open Chat Icon -->
+                                        <a href="{% url 'chat_detail' chat.id %}" title="Open">
+                                            <i class="fas fa-folder-open"></i>
+                                        </a>
+                                        <!-- Rename Chat Icon -->
+                                        <a href="javascript:void(0)" title="Rename" class="rename-chat"
+                                           data-id="{{ chat.id }}">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <!-- Delete Chat Icon -->
+                                        <a href="javascript:void(0)" title="Delete" class="delete-chat"
+                                           data-id="{{ chat.id }}">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
+                                        <!-- Download Chat Icon (to be implemented later) -->
+                                        <a href="javascript:void(0)" title="Download" class="download-chat">
+                                            <i class="fas fa-download"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating Plus Button -->
+    <div class="square-plus" id="plusButton">+</div>
+
+    <!-- Bubbles (Workspace and Chat) -->
+    <div class="bubble workspace-bubble" id="workspaceBubble" data-toggle="modal" data-target="#taskModal">W</div>
+    <div class="bubble chat-bubble" id="chatBubble" data-toggle="modal" data-target="#chatModal">C</div>
+
+    <!-- Modals -->
+    <!-- Raname Modal for Chat -->
+    <!-- Rename Chat Modal -->
+    <div class="modal fade" id="renameChatModal" tabindex="-1" aria-labelledby="renameChatLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="renameChatLabel">Rename Chat</h5>
+                </div>
+                <div class="modal-body">
+                    <form id="renameChatForm">
+                        <div class="form-group">
+                            <label for="newChatName">New Chat Name</label>
+                            <input type="text" class="form-control" id="newChatName" name="new_name" required>
+                            <input type="hidden" id="chatIdToRename">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="saveRename">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Task Modal for Workspace -->
+    <div class="modal fade" id="taskModal" tabindex="-1" aria-labelledby="taskModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="taskModalLabel">Create New Workspace</h5>
+                </div>
+                <div class="modal-body">
+                    <form id="createWorkspaceForm">
+                        <div class="form-group">
+                            <label for="workspaceName">Workspace Name</label>
+                            <input type="text" class="form-control" id="workspaceName"
+                                   placeholder="Enter workspace name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="workspaceFile">Upload a File (Optional)</label>
+                            <input type="file" class="custom-file-input" id="workspaceFile">
+                            <label class="custom-file-label" for="workspaceFile">Choose File</label>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="submit" form="createWorkspaceForm" class="btn btn-primary">Create Workspace</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Task Modal for Chat -->
+    <div class="modal fade" id="chatModal" tabindex="-1" aria-labelledby="chatModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="chatModalLabel">Create New Chat</h5>
+                </div>
+                <div class="modal-body">
+                    <form id="createChatForm" enctype="multipart/form-data">
+                        <div class="form-group">
+                            <label for="chatName">Chat Name</label>
+                            <input type="text" class="form-control" id="chatName" name="chatName"
+                                   placeholder="Enter chat name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="chatPrompt">Optional Prompt</label>
+                            <textarea class="form-control" id="chatPrompt" name="chatPrompt"
+                                      placeholder="Enter an optional prompt"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="chatModel">Chat Model</label>
+                            <select class="form-control" id="chatModel" name="chatModel" required>
+                                <option value="" disabled selected>Select a chat model</option>
+                                <option value="model1">Model 1</option>
+                                <option value="model2">Model 2</option>
+                                <option value="model3">Model 3</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="chatFile">Upload Documents (Optional)</label>
+                            <input type="file" class="custom-file-input" id="chatFile" name="chatFile" multiple>
+                            <label class="custom-file-label" for="chatFile">Choose Files</label>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="submit" form="createChatForm" class="btn btn-primary">Create Chat</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Include Bootstrap JS and jQuery for modal functionality -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.getElementById('chatFile').addEventListener('change', function () {
+            const fileInput = document.getElementById('chatFile');
+            const label = document.querySelector('label[for="chatFile"]');  // Select the label by "for" attribute
+
+            // Get the file names and join them if multiple files are selected
+            const fileNames = Array.from(fileInput.files).map(file => file.name).join(', ');
+
+            if (fileNames) {
+                label.textContent = fileNames;  // Manually update the label with selected file names
+            } else {
+                label.textContent = 'Choose Files';  // Reset if no files are selected
+            }
+        });
+        document.getElementById('createChatForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            const formData = new FormData(this);
+
+            // Check if file is added correctly
+            const fileInput = document.getElementById('chatFile');
+            if (fileInput.files.length > 0) {
+                console.log("Files are attached:", fileInput.files);
+            } else {
+                console.log("No files attached.");
+            }
+
+            fetch("{% url 'create_chat' %}", {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.chat_id) {
+                        alert('Chat session created successfully!');
+                        location.reload(); // Simple page reload to update the chat list
+                    } else {
+                        alert('Failed to create chat session.');
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+        });
+    </script>
+    <script>
+        // Open rename modal
+        document.querySelectorAll('.rename-chat').forEach(function (element) {
+            element.addEventListener('click', function () {
+                const chatId = this.getAttribute('data-id');
+                document.getElementById('chatIdToRename').value = chatId;
+                $('#renameChatModal').modal('show');
+            });
+        });
+
+        // Handle rename form submission
+        document.getElementById('renameChatForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            const newChatName = document.getElementById('newChatName').value;
+            const chatId = document.getElementById('chatIdToRename').value;
+
+            // Send AJAX request to rename the chat
+            fetch(`/chat/${chatId}/rename/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({new_name: newChatName})
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        $('#renameChatModal').modal('hide'); // Hide the modal on success
+                        location.reload(); // Reload the page to reflect changes
+                    } else {
+                        alert('Rename failed');
+                    }
+                });
+        });
+        // Handle delete chat
+        document.querySelectorAll('.delete-chat').forEach(function (element) {
+            element.addEventListener('click', function () {
+                const chatId = this.getAttribute('data-id');
+                if (confirm('Are you sure you want to delete this chat?')) {
+                    // Send AJAX request to delete the chat
+                    fetch(`/chat/${chatId}/delete/`, {
+                        method: 'DELETE',
+                        headers: {
+                            'X-CSRFToken': '{{ csrf_token }}'
+                        }
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                location.reload(); // Reload the page to reflect changes
+                            } else {
+                                alert('Delete failed');
+                            }
+                        });
+                }
+            });
+        });
+
+    </script>
+    <script>
+        // Toggle bubbles visibility on hover or click
+        const plusButton = document.getElementById('plusButton');
+        const workspaceBubble = document.getElementById('workspaceBubble');
+        const chatBubble = document.getElementById('chatBubble');
+
+        let bubblesVisible = false;
+
+        plusButton.addEventListener('click', function () {
+            if (!bubblesVisible) {
+                workspaceBubble.classList.add('show');
+                chatBubble.classList.add('show');
+                bubblesVisible = true;
+            } else {
+                workspaceBubble.classList.remove('show');
+                chatBubble.classList.remove('show');
+                bubblesVisible = false;
+            }
+        });
+
+        // Hide bubbles after clicking on one of them
+        workspaceBubble.addEventListener('click', function () {
+            workspaceBubble.classList.remove('show');
+            chatBubble.classList.remove('show');
+            bubblesVisible = false;
+        });
+
+        chatBubble.addEventListener('click', function () {
+            workspaceBubble.classList.remove('show');
+            chatBubble.classList.remove('show');
+            bubblesVisible = false;
+        });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"></script>
+
+{% endblock %}

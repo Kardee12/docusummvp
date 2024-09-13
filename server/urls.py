@@ -17,6 +17,8 @@ urlpatterns = [
                   path('chat/<uuid:chat_id>/upload/', chatviews.uploadFilesToChat, name='upload_file'),
                   path('chat/<uuid:chat_id>/rename/', chatviews.renameChat, name='rename_chat'),
                   path('chat/<uuid:chat_id>/delete/', chatviews.deleteChat, name='delete_chat'),
-                  path('test_chat', chatviews.testChat, name='test_chat')
+                  path('test_chat', chatviews.testChat, name='test_chat'),
+                  path('processMessagesAndFilesNew/', chatviews.processMessagesAndFilesNew,
+                       name='processMessagesAndFilesNew'),
               ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT) + static(settings.MEDIA_URL,
                                                                                            document_root=settings.MEDIA_ROOT)

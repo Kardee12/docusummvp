@@ -387,7 +387,7 @@
 
                 // Add CSRF token to the request
                 $.ajax({
-                    url: "/your_endpoint",  // Replace with your actual endpoint
+                    url: "{% url 'processMessagesAndFilesNew' %}",  // Replace with your actual endpoint
                     type: "POST",
                     data: formData,
                     headers: {
